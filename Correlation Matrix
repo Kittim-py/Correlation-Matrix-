@@ -1,0 +1,229 @@
+import pandas as pd
+
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+from scipy.stats import pearsonr
+
+
+
+# Load the dataset
+
+dataset = pd.read_csv('.csv')
+
+
+
+# Manually specify the input columns for correlation analysis (excluding target column)
+
+input_columns = ['']
+
+
+
+# Function to compute p-values for the correlation matrix
+
+def compute_p_values(data):
+
+    p_values = pd.DataFrame(np.zeros((data.shape[1], data.shape[1])), columns=data.columns, index=data.columns)
+
+    for col1 in data.columns:
+
+        for col2 in data.columns:
+
+            _, p_values.loc[col1, col2] = pearsonr(data[col1], data[col2])
+
+    return p_values
+
+
+
+# Compute correlation and p-value matrices
+
+corr_matrix = dataset[input_columns].corr()
+
+p_value_matrix = compute_p_values(dataset[input_columns])
+
+
+
+# Function to determine significance level based on p-value
+
+def significance_level(p_value, alpha=0.05):
+
+    if p_value <= 0.001:
+
+        return '•••'
+
+    elif p_value <= 0.01:
+
+        return '••'
+
+    elif p_value <= alpha:
+
+        return '•'
+
+    else:
+
+        return ''
+
+
+
+# Heatmap visualization
+
+plt.figure(figsize=(30, 24))  # Full-page display for better visibility
+
+
+
+# Editable title for the heatmap
+
+heatmap_title = input("Enter a title for the correlation heatmap: ") or 'Correlation Matrix'
+
+plt.title(f'\n {heatmap_title} \n', fontsize=28, fontweight='bold', color='navy')
+
+
+
+# Create the heatmap with a black border around each cell
+
+ax = sns.heatmap(
+
+    corr_matrix, 
+
+    annot=False, 
+
+    cmap='coolwarm', 
+
+    linewidths=1,  # Border width for each cell
+
+    linecolor='black',  # Border color
+
+    cbar_kws={'label': 'Correlation Coefficient'}
+
+)
+
+
+
+# Add correlation values and significance markers
+
+for i in range(len(corr_matrix.columns)):
+
+    for j in range(len(corr_matrix.columns)):
+
+        corr_value = corr_matrix.iloc[i, j]
+
+        p_value = p_value_matrix.iloc[i, j]
+
+        sig_symbol = significance_level(p_value)
+
+        
+
+        # Annotate correlation values
+
+        ax.text(j + 0.5, i + 0.5, f'{corr_value:.2f}', 
+
+                ha='center', va='center', fontsize=14, color='black', weight='bold')
+
+        
+
+        # Annotate significance levels with contrasting color (e.g., dark green)
+
+        if sig_symbol != '':
+
+            ax.text(j + 0.5, i + 0.7, sig_symbol, 
+
+                    ha='center', va='center', fontsize=20, color='darkgreen', weight='bold', alpha=0.9)
+
+
+
+# Add a horizontal annotation box below the graph
+
+plt.text(0, -1.5, "Significance Levels: • (p ≤ 0.05), •• (p ≤ 0.01), ••• (p ≤ 0.001)", 
+
+         fontsize=14, fontweight='bold', color='black', ha='center')
+
+
+
+# Adjust tick labels
+
+ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=14, fontweight='bold', style='italic')
+
+ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=14, fontweight='bold')  # Straight Y-axis labels
+
+
+
+# Add a black border around the entire heatmap
+
+for spine in ax.spines.values():
+
+    spine.set_edgecolor('black')
+
+    spine.set_linewidth(2)
+
+
+
+# Layout adjustments to ensure everything fits
+
+plt.tight_layout()
+
+
+
+# Display the heatmap
+
+plt.show()
+
+
+
+# Get the correlation values of each feature with the last column ())
+
+target_column = ''
+
+correlations_with_target = corr_matrix[target_column].drop(target_column)  # Exclude the target column itself
+
+
+
+# Plotting bar graph for correlations with the target column
+
+plt.figure(figsize=(12, 8))
+
+plt.barh(correlations_with_target.index, correlations_with_target.values, 
+
+         color=['blue' if x > 0 else 'red' for x in correlations_with_target.values])
+
+plt.axvline(0, color='black', linewidth=0.8, linestyle='--')  # Add vertical line at zero
+
+plt.title(f'Correlation with {target_column}', fontsize=18, fontweight='bold')
+
+plt.xlabel('Correlation Coefficient', fontsize=14)
+
+plt.ylabel('Features', fontsize=14)
+
+plt.xticks(fontsize=12)
+
+plt.yticks(fontsize=12)
+
+plt.grid(axis='x', linestyle='--', alpha=0.6)
+
+
+
+# Adding horizontal guidelines for better readability
+
+for i, value in enumerate(correlations_with_target.values):
+
+    plt.axhline(y=i, color='grey', linestyle='--', linewidth=0.6, alpha=0.5)
+
+plt.tight_layout()
+
+plt.show()
+
+
+
+
+
+# Save correlation and p-value matrices as CSV
+
+corr_matrix.to_csv('')
+
+p_value_matrix.to_csv('.csv')
+
+
+
+print(".csv saved.")
